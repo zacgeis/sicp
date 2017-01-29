@@ -1,0 +1,126 @@
+(define (make-accumulator init)
+  (lambda (inc) (begin (set! init (+ inc init)) init)))
+
+(define (make-monitored f)
+  (let ((counter 0))
+    (lambda (x) 
+      (begin
+        (set! counter (+ 1 counter))
+        (cond ((eq? x 'how-many-calls?) counter)
+              (else (f x)))))))
+
+(define A (make-monitored (make-accumulator 5)))
+
+(A 10)
+
+(A 10)
+
+(A 'how-many-calls?)
+
+(define (make-account amount password)
+  (let ((counter 0))
+    (define (withdraw x)
+      (if (< x amount)
+        (begin (set! amount (- amount x)) amount)
+        "Not enough funds"))
+    (define (deposit x)
+      (set! amount (+ amount x)) amount)
+    (define (call-the-cops)
+      "Calling the police")
+    (define (incorrect-password x)
+      (set! counter (+ counter 1))
+      (if (> counter 7)
+        (call-the-cops)
+        "Error"))
+    (define (dispatch m)
+      (cond ((eq? m 'withdraw) withdraw)
+            ((eq? m 'deposit) deposit)
+            ((eq? m 'dispatch) dispatch)))
+    (define (protected-dispatch p m)
+      (cond ((not (eq? p password)) incorrect-password)
+            (else (dispatch m))))
+    protected-dispatch))
+
+(define account (make-account 100 'test))
+
+((account 'notpassword 'withdraw) 50)
+((account 'notpassword 'withdraw) 50)
+((account 'notpassword 'withdraw) 50)
+((account 'notpassword 'withdraw) 50)
+((account 'notpassword 'withdraw) 50)
+((account 'notpassword 'withdraw) 50)
+((account 'notpassword 'withdraw) 50)
+((account 'notpassword 'withdraw) 50)
+
+(define (random-in-range low high)
+  (+ low (random (- high low))))
+
+(define (rand)
+  (random-in-range 1 100))
+
+(define (square x) (* x x))
+
+(define (estimate-pi trials)
+  (sqrt (/ 6 (monte-carlo trials cesaro-test))))
+(define (cesaro-test)
+  (= (gcd (rand) (rand)) 1))
+(define (monte-carlo trials experiment)
+  (define (iter trials-remaining trials-passed)
+    (cond ((= trials-remaining 0)
+           (/ trials-passed trials))
+          ((experiment)
+           (iter (- trials-remaining 1) (+ trials-passed 1)))
+          (else
+            (iter (- trials-remaining 1) trials-passed))))
+  (iter trials 0))
+
+(estimate-pi 100)
+
+(define (estimate-integral P x1 x2 y1 y2 trials)
+  (define (P-experiment) (P (random-in-range x1 x2) (random-in-range y1 y2)))
+  (let ((area (* (- x1 x2) (- y1 y2))))
+    (* area (monte-carlo trials P-experiment))))
+
+(define (in-circle? x y)
+  (<= (+ (square (- x 5)) (square (- y 7))) 9))
+
+(/ (estimate-integral in-circle? 2.0 8.0 4.0 10.0 1000) 9)
+
+(define (make-rand)
+  (let ((value 0))
+    (define (rand-update x) (+ 1 x))
+    (define (generate) (set! value (rand-update value)) value)
+    (define (reset new-value) (set! value new-value))
+    (lambda (m)
+      (cond ((eq? m 'generate) (generate))
+            ((eq? m 'reset) reset)
+            (else 'Error)))))
+(define rand (make-rand))
+(rand 'generate)
+(rand 'generate)
+((rand 'reset) 0)
+(rand 'generate)
+
+(define zach-acc (make-account 100 'test))
+((zach-acc 'test 'withdraw) 25)
+
+(define (make-joint account password new-passowrd)
+  (account password 'dispatch))
+
+(define ther-acc (make-joint zach-acc 'test 'test))
+
+((ther-acc 'withdraw) 25)
+((zach-acc 'test 'withdraw) 25)
+((ther-acc 'withdraw) 24)
+
+(define (make-const)
+  (let ((set #f) (value 0))
+    (lambda (x)
+      (if (eq? set #f) 
+        (begin (set! value x) (set! set #t) value)
+        value))))
+(define f (make-const))
+(f 0)
+(f 2)
+(f 3)
+(f 0)
